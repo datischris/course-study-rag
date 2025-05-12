@@ -2,23 +2,22 @@ import os
 import shutil
 import fitz
 import streamlit as st
-import base64
-
-from io import BytesIO
-from PIL import Image
 
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.llms       import HuggingFacePipeline
-from langchain.chains import RetrievalQA
+from langchain_community.llms import HuggingFacePipeline
 
 from transformers import pipeline
 
+## trigger a rebuild of embeddings when button clicked on st.rerun
+if "rebuild_embeddings" not in st.session_state:
+    st.session_state.rebuild_embeddings = False
+
 ## webpage styling and added favicon png image
 st.set_page_config(
-    page_title="DLStudy RAG", 
+    page_title="Course Study RAG", 
     layout="centered"
 )
 
@@ -46,14 +45,14 @@ st.markdown(
 st.markdown(
     """
     <div style="text-align:center">
-      <h1 style="margin-bottom:4px;">DLStudy for Deep Learning Help</h1>
+      <h1 style="margin-bottom:4px;">Your Course Study RAG</h1>
       <p style="
           color: rgba(100,100,100,0.6);
           font-size: 0.8rem;
           margin-top:0;
           margin-bottom:16px;
       ">
-        We've indexed all lecture PDFs. We will answer your queries and highlight key slide thumbnails.
+        I've indexed all your lecture PDFs. I will answer your queries and highlight key slide thumbnails.
       </p>
     </div>
     """,
@@ -66,47 +65,37 @@ INDEX_DIR = "faiss_index"
 
 # sidebar styling and features
 with st.sidebar:
-    st.markdown("# DL Study RAG", unsafe_allow_html=True)
+    st.markdown("# Course Study RAG", unsafe_allow_html=True)
 
-    st.sidebar.header("Lecture PDFs - Download")
+    st.sidebar.header("Lecture PDFs for Download")
 
     # map filenames to nice labels
-    lecture_map = {
-        "Lecture-1-intro.pdf":        "Introduction to Deep Learning",
-        "Lecture-3-algebra.pdf":      "Linear Algebra for Deep Learning",
-        "Lecture-4-numerical.pdf":    "Numerical Methods",
-        "Lecture-5-probability.pdf":  "Probability Theory",
-        "Lecture-CNN.pdf":            "Convolutional Neural Networks",
-        "Lecture-DGM.pdf":            "Deep Generative Models",
-        "Lecture-FNN.pdf":            "Feedforward Neural Networks",
-        "Lecture-optimization.pdf":    "Optimization Techniques",
-        "Lecture-regularization.pdf":  "Regularization Methods",
-        "Lecture-RL.pdf":             "Reinforcement Learning",
-        "Lecture-RNN.pdf":            "Recurrent Neural Networks",
-        "ML_basic.pdf":               "Machine Learning Basics"
-    }
+    pdf_files = sorted([f for f in os.listdir(DATA_DIR) if f.lower().endswith(".pdf")])
 
-    for fname, label in lecture_map.items():
+    for idx, fname in enumerate(pdf_files, start=1):
         path = os.path.join(DATA_DIR, fname)
-        if os.path.exists(path):
-            with open(path, "rb") as pdf_file:
-                pdf_bytes = pdf_file.read()
+        with open(path, "rb") as pdf_file:
+            pdf_bytes = pdf_file.read()
 
-            st.sidebar.download_button(
-                label=f"📄 {label}",
-                data=pdf_bytes,
-                file_name=fname,
-                mime="application/pdf",
-                key=f"dl_{fname}"
-            )
+        st.sidebar.download_button(
+            label=f"📄 {fname}",
+            data=pdf_bytes,
+            file_name=fname,
+            mime="application/pdf",
+            key=f"dl_{fname}"
+        )
 
     # options section
     st.subheader("Options")
-    if st.button("🔄 Rebuild the embeddings"):
+
+    # embeddings button
+    if st.button("Rebuild the embeddings"):
         if os.path.exists(INDEX_DIR):
             shutil.rmtree(INDEX_DIR)
-        st.experimental_rerun()
-
+        st.session_state.rebuild_embeddings = True
+        st.rerun()
+    
+    # slide thumbnail toggle
     show_images = st.checkbox("Show slide thumbnails", value=True)
 
 
@@ -132,7 +121,7 @@ PDF_IMAGES = load_pdf_images(DATA_DIR)
 # creating or retrieving vector embeddings (if path exists)
 # using MiniLM-L6 model
 @st.cache_resource(show_spinner=False)
-def get_vectorstore(data_dir, index_dir):
+def get_vectorstore(data_dir, index_dir, force_reload):
     
     # init embedding model (https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)
     embedder = HuggingFaceEmbeddings(
@@ -153,18 +142,25 @@ def get_vectorstore(data_dir, index_dir):
         loader = PyPDFLoader(path)
         pages = loader.load_and_split()
         docs.extend(pages)
-        progress.progress((idx+1)/len(pdf_files))
+        progress.progress((idx+1)/len(pdf_files), text="Splitting slides into chunks…")
 
     # this controls the overall splitting of the text for passing to embedder
     splitter = RecursiveCharacterTextSplitter(chunk_size=400, chunk_overlap=50)
     chunks = splitter.split_documents(docs)
 
+    # flag check and reset
+    if st.session_state.rebuild_embeddings:
+        st.session_state.rebuild_embeddings = False
+
     # create vector store and save embeddings in INDEX_DIR directory
     vs = FAISS.from_documents(chunks, embedder)
     vs.save_local(index_dir)
+    
+    # removing progress bar
+    progress.empty()
     return vs
 
-vectorstore = get_vectorstore(DATA_DIR, INDEX_DIR) # creating vector store variable for retrieval in model creation
+vectorstore = get_vectorstore(DATA_DIR, INDEX_DIR, st.session_state.rebuild_embeddings) # creating vector store variable for retrieval in model creation
 
 # setting up flan-t5 on local cpu for processing and LM output (https://huggingface.co/google/flan-t5-large)
 pipe = pipeline(
@@ -194,7 +190,7 @@ if prompt:
     placeholder = st.empty()
     with placeholder.container():
         with st.chat_message("assistant"):
-            st.write("DLBot is thinking...")
+            st.write("Course Bot is thinking...")
 
     # create spinner and do the heavy work
     with placeholder:

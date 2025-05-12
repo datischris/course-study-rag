@@ -1,2 +1,1 @@
-# cs-rag
-course study rag
+# Course Study Tool Using Retrieval Augmented Generation (RAG)
