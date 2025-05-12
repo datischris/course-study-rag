@@ -15,12 +15,14 @@ Using LangChain to orchestrate retrieval and structure the LLM inference pipelin
 ## Repository Structure
 ``` 
 ├── dl-study-rag/ 
-│   ├── app.py # Main Streamlit application containing RAG
-│   ├── data/ # Folder containing lecture PDFs (user-provided) 
-│   ├── faiss_index/ # FAISS index for semantic search (auto-generated) 
-│   ├── requirements.txt # Pip dependencies for conda env 
-│   ├── environment.txt # Conda environment specification 
-│   ├── README.md # Project documentation
+│   ├── app.py              # Main Streamlit application containing RAG
+│   ├── data/               # Folder containing lecture PDFs (user-provided) 
+│   ├── faiss_index/        # FAISS index folder for semantic search (auto-generated)
+│   │   ├── index.faiss     # Contains compressed representation of vector store
+│   │   ├── index.pkl       # Chunking METADATA for vector store
+│   ├── requirements.txt    # Pip dependencies for conda env 
+│   ├── environment.txt     # Conda environment specification 
+│   ├── README.md           # Project documentation
 │   ...
 ```
 
