@@ -26,3 +26,21 @@ Using LangChain to orchestrate retrieval and structure the LLM inference pipelin
 │   ...
 ```
 
+> **Note:** PDF slides are not included due to copyright. Please place your own slide decks into the `data/` folder and follow below on how to create the embeddings.
+
+
+## How to Run
+
+1. **Set up the environment using Conda**
+   ```bash
+   conda create --name rag-env --file environment.txt
+   conda activate rag-env
+2. **Install the necessary Python dependencies**
+   ```bash
+   pip install -r requirements.txt
+3. **Place all of your course PDF slides into the `data/` folder.**
+4. **Run the app.**
+   ```bash
+   streamlit run app.py
+5. **Navigate to the sidebar and click *Rebuild the embeddings*.**
+
