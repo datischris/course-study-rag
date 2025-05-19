@@ -1,6 +1,6 @@
 # Course Study Tool Using Retrieval-Augmented Generation (RAG)
 
-This project implements an offline study assistant using **retrieval-augmented generation (RAG)** to answer course-specific questions grounded in PDF lecture materials. It supports visual slide context and natural language response generation to help graduate students master complex topics.
+This project implements an offline study assistant using **retrieval-augmented generation (RAG)** to answer course-specific questions grounded in PDF lecture materials. It shows corresponding slides as context when generating a natural language response generation to help graduate students master complex topics.
 
 ## Abstract
 
@@ -44,3 +44,16 @@ Using LangChain to orchestrate retrieval and structure the LLM inference pipelin
    streamlit run app.py
 5. **Navigate to the sidebar and click *Rebuild the embeddings*.**
 
+## Compute Requirements
+This project was developed and tested on a local Windows 11 machine with the following specifications:
+
+| **Component**    | **Specification**                                      |
+|------------------|--------------------------------------------------------|
+| OS               | Windows 11 Home (Build 22631)                          |
+| Processor        | Intel Core i7-1255U, 10 cores (12 threads), 2.6 GHz    |
+| RAM              | 32 GB                        |
+| System Type      | x64-based PC                                           |
+
+The system ran entirely on CPU with no dedicated GPU, and the FLAN-T5 large model inference remained responsive due to efficient CPU deployment using the transformers.pipeline module.
+
+This configuration is suitable for small to medium PDF sets. For larger datasets or faster inference, using a GPU or cloud-based setup is recommended.

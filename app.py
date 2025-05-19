@@ -99,7 +99,8 @@ with st.sidebar:
     show_images = st.checkbox("Show slide thumbnails", value=True)
 
 
-# caching images for quick chat retreival
+# caching images for quick chat retreival used to prevent repeated PDF parsing and image rendering
+# without caching you can expect slow speeds in response generation
 # iterates through the pdfs and grabs screenshots (as pixmaps) and stores at DATA_DIR
 @st.cache_data(show_spinner=False)
 def load_pdf_images(data_dir):
@@ -118,12 +119,12 @@ def load_pdf_images(data_dir):
 PDF_IMAGES = load_pdf_images(DATA_DIR)
 
 
-# creating or retrieving vector embeddings (if path exists)
-# using MiniLM-L6 model
+# creating or retrieving vector embeddings (if path exists) using MiniLM-L6 model
 @st.cache_resource(show_spinner=False)
 def get_vectorstore(data_dir, index_dir, force_reload):
     
     # init embedding model (https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)
+    # using a small context length model (max 256 tokens) which ideal for lightweight semantic retrieval within PDFs
     embedder = HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2",
         model_kwargs={"device": "cpu"}
@@ -152,7 +153,8 @@ def get_vectorstore(data_dir, index_dir, force_reload):
     if st.session_state.rebuild_embeddings:
         st.session_state.rebuild_embeddings = False
 
-    # create vector store and save embeddings in INDEX_DIR directory
+    # create FAISS (Facebook AI Similarity Search) vector store database and save embeddings in INDEX_DIR directory
+    # enables fast similarity search by indexing and retrieving the most semantically similar vectors using approximate nearest neighbor algorithms.
     vs = FAISS.from_documents(chunks, embedder)
     vs.save_local(index_dir)
     
